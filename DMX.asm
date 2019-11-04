@@ -22,6 +22,9 @@ DMX_output
 
 ; Writes 8 bits to PORTC from FSR0
 DMX_output_byte
+	bcf	PORTC, out_pin	; send start bit
+	nop
+	nop
 b0	btfsc	INDF0, 0    ; Test bit 0, skip if clear
 	bra	b0_1	    ; Go to case that outputs 1 on PORTC pin
 	nop
@@ -96,7 +99,8 @@ b7_1	bsf PORTC, out_pin
 b8	nop
 	nop
 	nop
-	bsf PORTC, out_pin  ; restore output pin to original state
+	bsf PORTC, out_pin  ; send both end bytes
+	; TODO: send N nops here, where N depends on factors
 	return
 
 end
