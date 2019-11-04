@@ -4,6 +4,9 @@
 global	    DMX_setup, DMX_output
 	
 ; Reserving space in RAM
+DMX_vars    udata_acs	; Reserve space somewhere (swhere) in access RAM
+count0	res 1
+count1	res 1
 
 ; Constants
 constant    out_pin = 0
@@ -17,7 +20,16 @@ DMX_setup
 	return
 
 DMX_output
+	; Counter set to 0x200, so it repeats 513 times
+	movlw	0x2
+	movwf	count0
+	movlw	0x0
+	movwf	count1
+DMXol		
 	call	DMX_output_byte
+	decf	count1, f
+	subwfb	count0, f
+	bc	DMXol
 	return
 
 ; Writes 8 bits to PORTC from FSR0
@@ -88,7 +100,7 @@ b6_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b7	btfsc   INDF0, 7
+b7	btfsc   POSTINC0, 7 ; increment the pointer
 	bra b7_1
 	nop
 	bcf PORTC, out_pin
@@ -101,6 +113,9 @@ b8	nop
 	nop
 	bsf PORTC, out_pin  ; send both end bytes
 	; TODO: send N nops here, where N depends on factors
+	nop
+	nop
+	nop
 	return
 
 end

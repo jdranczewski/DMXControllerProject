@@ -34,7 +34,7 @@ setup
 	lfsr	FSR0, DMXdata
 	call	write_some_data
 	call	DMX_setup
-	lfsr	FSR0, d2
+	lfsr	FSR0, DMXdata
 	call	DMX_output
 
 	bra setup
