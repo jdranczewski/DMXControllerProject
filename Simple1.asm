@@ -3,12 +3,15 @@
 ; Externals section
 	
 ; Reserving space in RAM
-	; Put the 0th byte in access RAM for ease of access
-	udata_acs	.95
+swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
+count0	res 1
+count1	res 1
+inc_tmp	res 1
+	
+there	udata_acs .95	; Put the 0th byte of DMX data in access RAM
 DMXdata res 1
  
-	; Put the actual data across banks 0-2 
-	udata_shr
+shared	udata_shr	; Put the actual data across banks 0-2
 d1u	udata	.96
 d1	res	.160
 d2u	udata	0x100
@@ -24,9 +27,27 @@ rst	code	0
 
 
 ; Put code somewhere in Program Memory
-main code
-
+main	code
+ 
 setup
+	lfsr	FSR0, DMXdata
+	call	write_some_data
+
 	bra $
+
+; Write incrementing values to DMX data block
+write_some_data
+	; Counter set to 0x200, so it repeats 513 times
+	movlw	0x2
+	movwf	count0
+	movlw	0x0
+	movwf	count1
+	movwf	inc_tmp
+wsdl	movff	inc_tmp, POSTINC0    ; Move incrementing value to the DMX data
+	incf	inc_tmp, f
+	decf	count1, f
+	subwfb	count0, f
+	bc	wsdl
+	return
 	
 	end
