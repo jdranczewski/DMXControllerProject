@@ -1,6 +1,7 @@
 	#include p18f87k22.inc
 
 ; Externals section
+extern	DMX_setup, DMX_output
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
@@ -32,8 +33,11 @@ main	code
 setup
 	lfsr	FSR0, DMXdata
 	call	write_some_data
+	call	DMX_setup
+	lfsr	FSR0, d2
+	call	DMX_output
 
-	bra $
+	bra setup
 
 ; Write incrementing values to DMX data block
 write_some_data
