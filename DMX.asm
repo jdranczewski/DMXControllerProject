@@ -7,6 +7,7 @@ global	    DMX_setup, DMX_output
 DMX_vars    udata_acs	; Reserve space somewhere (swhere) in access RAM
 count0	res 1
 count1	res 1
+delayb	res 1
 
 ; Constants
 constant    out_pin = 0
@@ -27,6 +28,7 @@ DMX_output
 	movwf	count1
 DMXol		
 	call	DMX_output_byte
+	movlw	0
 	decf	count1, f
 	subwfb	count0, f
 	bc	DMXol
@@ -37,7 +39,8 @@ DMX_output_byte
 	bcf	PORTC, out_pin	; send start bit
 	nop
 	nop
-b0	btfsc	INDF0, 0    ; Test bit 0, skip if clear
+b0	call	DMX_bit_delay, 1
+	btfsc	INDF0, 0    ; Test bit 0, skip if clear
 	bra	b0_1	    ; Go to case that outputs 1 on PORTC pin
 	nop
 	bcf	PORTC, out_pin	; Clear PORTC output pin
@@ -46,7 +49,8 @@ b0_1	bsf	PORTC, out_pin	; Set PORTC pin
 	nop
 	nop
 	
-b1	btfsc   INDF0, 1
+b1	call	DMX_bit_delay, 1
+	btfsc   INDF0, 1
 	bra b1_1
 	nop
 	bcf PORTC, out_pin
@@ -55,7 +59,8 @@ b1_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b2	btfsc   INDF0, 2
+b2	call	DMX_bit_delay, 1
+	btfsc   INDF0, 2
 	bra b2_1
 	nop
 	bcf PORTC, out_pin
@@ -64,7 +69,8 @@ b2_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b3	btfsc   INDF0, 3
+b3	call	DMX_bit_delay, 1
+	btfsc   INDF0, 3
 	bra b3_1
 	nop
 	bcf PORTC, out_pin
@@ -73,7 +79,8 @@ b3_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b4	btfsc   INDF0, 4
+b4	call	DMX_bit_delay, 1
+	btfsc   INDF0, 4
 	bra b4_1
 	nop
 	bcf PORTC, out_pin
@@ -82,7 +89,8 @@ b4_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b5	btfsc   INDF0, 5
+b5	call	DMX_bit_delay, 1
+	btfsc   INDF0, 5
 	bra b5_1
 	nop
 	bcf PORTC, out_pin
@@ -91,7 +99,8 @@ b5_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b6	btfsc   INDF0, 6
+b6	call	DMX_bit_delay, 1
+	btfsc   INDF0, 6
 	bra b6_1
 	nop
 	bcf PORTC, out_pin
@@ -100,7 +109,8 @@ b6_1	bsf PORTC, out_pin
 	nop
 	nop
 
-b7	btfsc   POSTINC0, 7 ; increment the pointer
+b7	call	DMX_bit_delay, 1
+	btfsc   POSTINC0, 7 ; increment the pointer
 	bra b7_1
 	nop
 	bcf PORTC, out_pin
@@ -108,14 +118,25 @@ b7	btfsc   POSTINC0, 7 ; increment the pointer
 b7_1	bsf PORTC, out_pin
 	nop
 	nop
-b8	nop
+b8	call	DMX_bit_delay, 1
+	nop
 	nop
 	nop
 	bsf PORTC, out_pin  ; send both end bytes
-	; TODO: send N nops here, where N depends on factors
+	call	DMX_bit_delay, 1
+	call	DMX_bit_delay, 1
 	nop
 	nop
 	nop
 	return
+	
+DMX_bit_delay
+	movlw	.16
+	nop
+	nop
+	movwf	delayb
+dbl	decfsz	delayb
+	bra dbl
+	retfie
 
 end
