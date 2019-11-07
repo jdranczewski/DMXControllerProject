@@ -35,7 +35,7 @@ setup
 	call	write_some_data
 	call	DMX_setup
 	lfsr	FSR0, DMXdata
-	call	DMX_output
+	call	DMX_output, FAST
 
 	bra setup
 
