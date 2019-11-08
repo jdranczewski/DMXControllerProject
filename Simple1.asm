@@ -1,5 +1,7 @@
 	#include p18f87k22.inc
 
+; Globals section
+global	DMXdata
 ; Externals section
 extern	DMX_setup, DMX_output
 	
@@ -34,10 +36,8 @@ setup
 	lfsr	FSR0, DMXdata
 	call	write_some_data
 	call	DMX_setup
-	lfsr	FSR0, DMXdata
-	call	DMX_output, FAST
 
-	bra setup
+	bra $
 
 ; Write incrementing values to DMX data block
 write_some_data

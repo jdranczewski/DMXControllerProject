@@ -3,6 +3,9 @@
 ; Globals section
 global	    DMX_setup, DMX_output
 	
+; Externals section
+extern	    DMXdata
+	
 ; Reserving space in RAM
 DMX_vars    udata_acs	; Reserve space somewhere (swhere) in access RAM
 count0	res 1		; Counter up to 513 for reading memory
@@ -18,6 +21,16 @@ starths	res 1
 	
 ; Constants
 constant    out_pin = 0
+constant    out_pin_i = 1
+
+; Interrupt
+int_hi	code	0x0008
+	btfss	INTCON,TMR0IF	; check that this is timer0 interrupt
+	retfie	FAST		; if not then return
+	lfsr	FSR0, DMXdata
+	call	DMX_output
+	bcf	INTCON,TMR0IF	; clear interrupt flag
+	retfie	FAST		; fast return from interrupt
 	
 ; Put this somewhere in Program memory
 DMX	code
@@ -25,16 +38,22 @@ DMX	code
 DMX_setup
 	bcf	TRISC, out_pin    ; Pin 0 on C - output
 	bsf	PORTC, out_pin	  ; Output 1 by default
+	bcf	TRISC, out_pin_i    ; Pin 1 on C - output
+	bsf	PORTC, out_pin_i	  ; Output 0 by default
 	movlw	0x2
 	movwf	count0s
 	movlw	0x0
 	movwf	count1s
 	movlw	.17
 	movwf	delaybs
-	movlw	.25
+	movlw	.50
 	movwf	startls
-	movlw	.5
+	movlw	.16
 	movwf	starths
+	movlw	b'10000011'	; Set timer0 to 16-bit, Fosc/4/256
+	movwf	T0CON	; = 62.5KHz clock rate, approx 1sec rollover
+	bsf	INTCON,TMR0IE	; Enable timer0 interrupt
+	bsf	INTCON,GIE	; Enable all interrupts
 	return
 
 DMX_output
@@ -48,7 +67,7 @@ DMXol
 	decf	count1, f
 	subwfb	count0, f
 	bc	DMXol
-	retfie
+	return
 
 
 ; Sends out the start signal
