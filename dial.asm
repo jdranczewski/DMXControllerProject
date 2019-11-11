@@ -1,16 +1,16 @@
 	#include p18f87k22.inc
 
 ; Globals section
-global	dial_setup, dial_read
+global	dial_setup
 	
 ; Interrupt
 int_lo	code	0x0018
-	;btfss	PIR1,ADIF	; check that this is ADC interrupt
-	;retfie	FAST		; if not then return
+	btfss	PIR1,ADIF	; check that this is ADC interrupt
+	retfie	FAST		; if not then return
 	movff	ADRESH, INDF1
-	bcf	PIR1,ADIF	; clear interrupt flag
-	bsf	ADCON0,GO	; Start conversion again
-	retfie	FAST		; fast return from interrupt
+	bcf	PIR1, ADIF	; Clear interrupt flag
+	bsf	ADCON0, GO	; Start conversion again
+	retfie	FAST		; Fast return from interrupt
 	
 ; Put code somewhere in Program Memory
 dial	code
@@ -25,19 +25,14 @@ dial_setup
     movlw   0x76	    ; Left justified output
     movwf   ADCON2	    ; Fosc/64 clock and acquisition times
     
-    bsf	    RCON,IPEN	    ; enables using interrupt priority
-    bcf	    PIR1,ADIF	    ; clear ADC interrupt flag
-    bsf	    PIE1,ADIE	    ; enable ADC interrupt
-    bsf	    INTCON,GIEL	    ; Enable all interrupts
-    bcf	    IPR1,ADIP	    ; set priority to low
-    bsf	    ADCON0,GO	    ; Start conversion
-    return
-
-dial_read
-    bsf	    ADCON0,GO	    ; Start conversion
-dial_loop
-    btfsc   ADCON0,GO	    ; check to see if finished
-    bra	    dial_loop
+    ; Interrupt
+    bsf	    RCON, IPEN	    ; enables using interrupt priority
+    bsf	    INTCON, GIEL    ; Enable all low-priority interrupts
+    bsf	    PIE1, ADIE	    ; enable ADC interrupt
+    bcf	    IPR1, ADIP	    ; set priority to low
+    
+    bsf	    ADCON0, GO	    ; Start conversion
+    
     return
   
 end

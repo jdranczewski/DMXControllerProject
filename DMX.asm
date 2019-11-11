@@ -40,6 +40,8 @@ DMX_setup
 	bsf	LATC, out_pin	  ; Output 1 by default
 	bcf	TRISC, out_pin_i    ; Pin 1 on C - output
 	bcf	LATC, out_pin_i	  ; Output 0 by default
+	
+	; Set up counter defaults
 	movlw	0x2
 	movwf	count0s
 	movlw	0x0
@@ -50,12 +52,17 @@ DMX_setup
 	movwf	startls
 	movlw	.16
 	movwf	starths
-	movlw	b'10000011'	; Set timer0 to 16-bit, Fosc/4/256
+	
+	; Set timer0 to 16-bit, Fosc/4/256
+	movlw	b'10000011'
 	movwf	T0CON		; = 62.5KHz clock rate, approx 1sec rollover
-	bsf	RCON,IPEN	; enables using interrupt priority
-	bsf	INTCON,TMR0IE	; Enable timer0 interrupt
-	bsf	INTCON,GIEH	; Enable all interrupts
-	bsf	INTCON2,TMR0IP	; set priority to high
+	
+	; Interrupt
+	bsf	RCON, IPEN	; enables using interrupt priority
+	bsf	INTCON, GIEH	; Enable all high-priority interrupts
+	bsf	INTCON, TMR0IE	; Enable timer0 interrupt
+	bsf	INTCON2, TMR0IP	; set priority to high
+	
 	return
 
 DMX_output

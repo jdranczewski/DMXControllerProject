@@ -4,7 +4,7 @@
 global	DMXdata
 ; Externals section
 extern	DMX_setup, DMX_output
-extern  dial_setup, dial_read
+extern  dial_setup
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
