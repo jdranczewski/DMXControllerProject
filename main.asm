@@ -5,12 +5,16 @@ global	DMXdata
 ; Externals section
 extern	DMX_setup, DMX_output
 extern  dial_setup
+extern	keyb_setup, keyb_read_code_change
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
 count0	res 1
 count1	res 1
 inc_tmp	res 1
+mode	res 1
+; Buttons
+F	res 1
 	
 there	udata_acs .95	; Put the 0th byte of DMX data in access RAM
 DMXdata res 1
@@ -40,7 +44,31 @@ setup
 	incf	FSR1L, f
 	call	DMX_setup
 	call	dial_setup
-	bra	$
+	call	keyb_setup
+	
+	movlw	0
+	movwf	mode
+	
+	movlw	.9
+	movwf	F
+	
+	movlw	0
+	movwf	TRISC
+	bcf	LATC, 5
+	
+
+loop	movlw	.1
+	cpfseq	mode
+	bra	keyb
+	bsf	LATC, 5
+	
+keyb	call	keyb_read_code_change
+	cpfseq	F
+	bra	loop
+	movlw	.1
+	movwf	mode
+	
+	bra	loop
 
 ; Write incrementing values to DMX data block
 write_some_data

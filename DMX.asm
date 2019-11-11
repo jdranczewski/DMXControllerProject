@@ -7,17 +7,17 @@ global	    DMX_setup, DMX_output
 extern	    DMXdata
 	
 ; Reserving space in RAM
-DMX_vars    udata_acs	; Reserve space somewhere (swhere) in access RAM
-count0	res 1		; Counter up to 513 for reading memory
-count0s	res 1		; Source variable for the counter
-count1	res 1
-count1s	res 1
-delayb	res 1		; Counter for the bit delay
-delaybs	res 1
-startl	res 1		; Counter for the low period of start signal
-startls	res 1
-starth	res 1		; Counter for the high period of start signal
-starths	res 1
+DMX_vars    udata_acs		; Reserve space somewhere (swhere) in access RAM
+count0	    res 1		; Counter up to 513 for reading memory
+count0s	    res 1		; Source variable for the counter
+count1	    res 1
+count1s	    res 1
+delayb	    res 1		; Counter for the bit delay
+delaybs	    res 1
+startl	    res 1		; Counter for the low period of start signal
+startls	    res 1
+starth	    res 1		; Counter for the high period of start signal
+starths	    res 1
 	
 ; Constants
 constant    out_pin = 0
