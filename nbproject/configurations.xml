@@ -17,6 +17,7 @@
       <itemPath>dial.asm</itemPath>
       <itemPath>main.asm</itemPath>
       <itemPath>keyboard.asm</itemPath>
+      <itemPath>LCD.asm</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

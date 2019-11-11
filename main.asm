@@ -6,6 +6,7 @@ global	DMXdata
 extern	DMX_setup, DMX_output
 extern  dial_setup
 extern	keyb_setup, keyb_read_code_change
+extern	LCD_setup, LCD_Send_Byte_D, LCD_clear
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
@@ -15,6 +16,8 @@ inc_tmp	res 1
 mode	res 1
 ; Buttons
 F	res 1
+_C	res 1
+invalid	res 1
 	
 there	udata_acs .95	; Put the 0th byte of DMX data in access RAM
 DMXdata res 1
@@ -28,6 +31,11 @@ d3u	udata	0x200
 d3	res	.96
 
 ; Constants
+	
+; Data
+pdata	code	0x500    
+;kcodes	db	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, .1, .2, .3, "F", 0xFF, .4, .5, .6, 0xFF, 0xFF, .7, .8, .9, 0xFF, 0xFF, 0xFF, .0, 0xFF, "C"
+kcodes	db	0, 0, 0, 0, 0, 0, "1", "2", "3", "F", 0, "4", "5", "6", "E", 0, "7", "8", "9", "D", 0, "A", "0", "B", "C"
 
 ; Reset to 0	
 rst	code	0
@@ -45,31 +53,70 @@ setup
 	call	DMX_setup
 	call	dial_setup
 	call	keyb_setup
+	call	LCD_setup
 	
 	movlw	0
 	movwf	mode
+	movwf	invalid
 	
 	movlw	.9
 	movwf	F
+	movlw	.24
+	movwf	_C
 	
 	movlw	0
 	movwf	TRISC
 	bcf	LATC, 5
 	
 
-loop	movlw	.1
+loop	movlw	.0
 	cpfseq	mode
-	bra	keyb
-	bsf	LATC, 5
+	bra	m1if
+	bra	mode0
+m1if	movlw	.1
+	cpfseq	mode
+	bra	loop
+	bra	mode1	
 	
-keyb	call	keyb_read_code_change
+mode0	call	keyb_read_code_change
 	cpfseq	F
 	bra	loop
 	movlw	.1
 	movwf	mode
+	movlw	"C"
+	call	LCD_Send_Byte_D
+	call	number_input_setup
+	bra	loop
+
+mode1	movlw	low(kcodes)
+	movwf	TBLPTRL
+	call	keyb_read_code_change
+	cpfseq	_C
+	bra	m1cont0
+	movlw	.0
+	movwf	mode
+	call	LCD_clear
+	bra	loop
+m1cont0	cpfseq	invalid
+	bra	m1cont1
+	bra	loop
+m1cont1	addwf	TBLPTRL
+	tblrd*
+	movf	TABLAT, W
+	call	LCD_Send_Byte_D
 	
 	bra	loop
 
+	
+number_input_setup
+	movlw	upper(kcodes)	; address of data in PM
+	movwf	TBLPTRU		; load upper bits to TBLPTRU
+	movlw	high(kcodes)	; address of data in PM
+	movwf	TBLPTRH		; load high byte to TBLPTRH
+	movlw	low(kcodes)	; address of data in PM
+	movwf	TBLPTRL		; load low byte to TBLPTRL
+	return
+	
 ; Write incrementing values to DMX data block
 write_some_data
 	; Counter set to 0x200, so it repeats 513 times
