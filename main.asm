@@ -40,10 +40,7 @@ setup
 	incf	FSR1L, f
 	call	DMX_setup
 	call	dial_setup
-	;bra	$
-diall	call	dial_read
-	movff	ADRESH, INDF1
-	bra	diall
+	bra	$
 
 ; Write incrementing values to DMX data block
 write_some_data

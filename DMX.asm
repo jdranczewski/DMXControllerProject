@@ -51,9 +51,11 @@ DMX_setup
 	movlw	.16
 	movwf	starths
 	movlw	b'10000011'	; Set timer0 to 16-bit, Fosc/4/256
-	movwf	T0CON	; = 62.5KHz clock rate, approx 1sec rollover
+	movwf	T0CON		; = 62.5KHz clock rate, approx 1sec rollover
+	bsf	RCON,IPEN	; enables using interrupt priority
 	bsf	INTCON,TMR0IE	; Enable timer0 interrupt
-	bsf	INTCON,GIE	; Enable all interrupts
+	bsf	INTCON,GIEH	; Enable all interrupts
+	bsf	INTCON2,TMR0IP	; set priority to high
 	return
 
 DMX_output
