@@ -4,6 +4,7 @@
 global	DMXdata
 ; Externals section
 extern	DMX_setup, DMX_output
+extern  dial_setup, dial_read
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
@@ -35,9 +36,14 @@ main	code
 setup
 	lfsr	FSR0, DMXdata
 	call	write_some_data
+	lfsr	FSR1, DMXdata
+	incf	FSR1L, f
 	call	DMX_setup
-
-	bra $
+	call	dial_setup
+	;bra	$
+diall	call	dial_read
+	movff	ADRESH, INDF1
+	bra	diall
 
 ; Write incrementing values to DMX data block
 write_some_data
