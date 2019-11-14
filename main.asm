@@ -7,6 +7,7 @@ extern	DMX_setup, DMX_output
 extern  dial_setup
 extern	keyb_setup, keyb_read_code_change
 extern	LCD_setup, LCD_Send_Byte_D, LCD_clear
+extern	deci_setup, deci_keypress, deci_start
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
@@ -17,7 +18,6 @@ mode	res 1
 ; Buttons
 F	res 1
 _C	res 1
-invalid	res 1
 	
 there	udata_acs .95	; Put the 0th byte of DMX data in access RAM
 DMXdata res 1
@@ -32,11 +32,6 @@ d3	res	.96
 
 ; Constants
 	
-; Data
-pdata	code	0x500    
-;kcodes	db	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, .1, .2, .3, "F", 0xFF, .4, .5, .6, 0xFF, 0xFF, .7, .8, .9, 0xFF, 0xFF, 0xFF, .0, 0xFF, "C"
-kcodes	db	0, 0, 0, 0, 0, 0, "1", "2", "3", "F", 0, "4", "5", "6", "E", 0, "7", "8", "9", "D", 0, "A", "0", "B", "C"
-
 ; Reset to 0	
 rst	code	0
 	goto	setup
@@ -54,10 +49,11 @@ setup
 	call	dial_setup
 	call	keyb_setup
 	call	LCD_setup
+	call	deci_setup
 	
 	movlw	0		
 	movwf	mode		; Default mode 0
-	movwf	invalid		; TODO: change for decimal inputs
+	
 	
 	; Keycodes for buttons 
 	movlw	.9		
@@ -90,12 +86,11 @@ mode0	call	keyb_read_code_change	    ; read in keyboard input
 	; Print out C on the LCD screen for "Channel"
 	movlw	"C"
 	call	LCD_Send_Byte_D
-	call	number_input_setup	    ; moves keycodes to program memory
+	call	deci_start		    ; moves keycodes to program memory
 	bra	loop
 
 ; Mode 1 implementation
-mode1	movlw	low(kcodes)		    ; resetting table pointer to the start of the keycodes
-	movwf	TBLPTRL
+mode1	
 	call	keyb_read_code_change	    ; read keyboard input
 	cpfseq	_C			    ; compare to "enter" keycode
 	bra	m1cont0			    ; not enter - go to m1cont0
@@ -104,25 +99,10 @@ mode1	movlw	low(kcodes)		    ; resetting table pointer to the start of the keyco
 	movwf	mode			
 	call	LCD_clear
 	bra	loop
-m1cont0	addwf	TBLPTRL			    ; read keycode from program memory
-	tblrd*
-	movf	TABLAT, W
-	cpfseq	invalid			    ; check if keyboard input is valid
-	bra	m1cont1
+m1cont0	
+	call	deci_keypress
 	bra	loop			   
-m1cont1	call	LCD_Send_Byte_D		    ; print valid numbers on the LCD	
-	bra	loop
 
-	
-number_input_setup
-	movlw	upper(kcodes)	; address of data in PM
-	movwf	TBLPTRU		; load upper bits to TBLPTRU
-	movlw	high(kcodes)	; address of data in PM
-	movwf	TBLPTRH		; load high byte to TBLPTRH
-	movlw	low(kcodes)	; address of data in PM
-	movwf	TBLPTRL		; load low byte to TBLPTRL
-	return
-	
 ; Write incrementing values to DMX data block
 write_some_data
 	; Counter set to 0x200, so it repeats 513 times
