@@ -1,7 +1,7 @@
 #include p18f87k22.inc
 
 ; Globals section
-global  LCD_setup, LCD_Write_Message, LCD_Send_Byte_D, LCD_goto_pos, LCD_clear
+global  LCD_setup, LCD_Write_Message, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_goto_pos, LCD_clear
 
 ; Reserving space in RAM
 acs0    udata_acs   ; named variables in access ram
@@ -57,6 +57,16 @@ LCD_Loop_message
 	call    LCD_Send_Byte_D
 	decfsz  LCD_counter
 	bra	LCD_Loop_message
+	return
+	
+LCD_Write_Message_TBLPTR    ; Message stored at TBLPTR, length stored in W
+	movwf   LCD_counter
+LCD_Loop_message_TBLPTR
+	tblrd*+
+	movf    TABLAT, W
+	call    LCD_Send_Byte_D
+	decfsz  LCD_counter
+	bra	LCD_Loop_message_TBLPTR
 	return
 	
 LCD_goto_pos

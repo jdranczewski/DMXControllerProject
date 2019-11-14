@@ -6,7 +6,7 @@ global	DMXdata
 extern	DMX_setup, DMX_output
 extern  dial_setup
 extern	keyb_setup, keyb_read_code_change
-extern	LCD_setup, LCD_Send_Byte_D, LCD_clear
+extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
@@ -36,6 +36,7 @@ d3	res	.96
 pdata	code	0x500    
 ;kcodes	db	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, .1, .2, .3, "F", 0xFF, .4, .5, .6, 0xFF, 0xFF, .7, .8, .9, 0xFF, 0xFF, 0xFF, .0, 0xFF, "C"
 kcodes	db	0, 0, 0, 0, 0, 0, "1", "2", "3", "F", 0, "4", "5", "6", "E", 0, "7", "8", "9", "D", 0, "A", "0", "B", "C"
+ch_str	data	"Channel:"
 
 ; Reset to 0	
 rst	code	0
@@ -88,8 +89,7 @@ mode0	call	keyb_read_code_change	    ; read in keyboard input
 	movwf	mode			    ;if F pressed, change mode variable to 1
 	
 	; Print out C on the LCD screen for "Channel"
-	movlw	"C"
-	call	LCD_Send_Byte_D
+	call	ch_dsp
 	call	number_input_setup	    ; moves keycodes to program memory
 	bra	loop
 
@@ -122,6 +122,17 @@ number_input_setup
 	movlw	low(kcodes)	; address of data in PM
 	movwf	TBLPTRL		; load low byte to TBLPTRL
 	return
+	
+ch_dsp
+	movlw	upper(ch_str)	; address of data in PM
+	movwf	TBLPTRU		; load upper bits to TBLPTRU
+	movlw	high(ch_str)	; address of data in PM
+	movwf	TBLPTRH		; load high byte to TBLPTRH
+	movlw	low(ch_str)	; address of data in PM
+	movwf	TBLPTRL		; load low byte to TBLPTRL
+	movlw	.8
+	call	LCD_Write_Message_TBLPTR
+	return	
 	
 ; Write incrementing values to DMX data block
 write_some_data
