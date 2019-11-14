@@ -46,65 +46,71 @@ rst	code	0
 main	code
  
 setup
-	lfsr	FSR0, DMXdata
+	lfsr	FSR0, DMXdata	; Point FSR to DMX values for output
 	call	write_some_data
-	lfsr	FSR1, DMXdata
-	incf	FSR1L, f
+	lfsr	FSR1, DMXdata	; Point FSR to DMX values for input
+	incf	FSR1L, f	; Write to channel 1, as channel 0 consists of all zeroes
 	call	DMX_setup
 	call	dial_setup
 	call	keyb_setup
 	call	LCD_setup
 	
-	movlw	0
-	movwf	mode
-	movwf	invalid
+	movlw	0		
+	movwf	mode		; Default mode 0
+	movwf	invalid		; TODO: change for decimal inputs
 	
-	movlw	.9
-	movwf	F
+	; Keycodes for buttons 
+	movlw	.9		
+	movwf	F		; Channel select
 	movlw	.24
-	movwf	_C
+	movwf	_C		; Enter
 	
+	; Set Port C as output
 	movlw	0
 	movwf	TRISC
 	bcf	LATC, 5
 	
-
+; Main mode selection loop
 loop	movlw	.0
-	cpfseq	mode
-	bra	m1if
-	bra	mode0
+	cpfseq	mode	; compare 0 to mode variable
+	bra	m1if	; if not 0, go to other mode comparison
+	bra	mode0	; if 0, branch to mode 0 implementation
 m1if	movlw	.1
 	cpfseq	mode
 	bra	loop
 	bra	mode1	
 	
-mode0	call	keyb_read_code_change
-	cpfseq	F
-	bra	loop
+; Mode 0 implementation
+mode0	call	keyb_read_code_change	    ; read in keyboard input
+	cpfseq	F			    ; compare to "channel select" keycode
+	bra	loop			    ; if F not pressed, go back to loop
 	movlw	.1
-	movwf	mode
+	movwf	mode			    ;if F pressed, change mode variable to 1
+	
+	; Print out C on the LCD screen for "Channel"
 	movlw	"C"
 	call	LCD_Send_Byte_D
-	call	number_input_setup
+	call	number_input_setup	    ; moves keycodes to program memory
 	bra	loop
 
-mode1	movlw	low(kcodes)
+; Mode 1 implementation
+mode1	movlw	low(kcodes)		    ; resetting table pointer to the start of the keycodes
 	movwf	TBLPTRL
-	call	keyb_read_code_change
-	cpfseq	_C
-	bra	m1cont0
-	movlw	.0
-	movwf	mode
+	call	keyb_read_code_change	    ; read keyboard input
+	cpfseq	_C			    ; compare to "enter" keycode
+	bra	m1cont0			    ; not enter - go to m1cont0
+	; if enter - change mode back to 0 and clear LCD screen
+	movlw	.0			    
+	movwf	mode			
 	call	LCD_clear
 	bra	loop
-m1cont0	cpfseq	invalid
-	bra	m1cont1
-	bra	loop
-m1cont1	addwf	TBLPTRL
+m1cont0	addwf	TBLPTRL			    ; read keycode from program memory
 	tblrd*
 	movf	TABLAT, W
-	call	LCD_Send_Byte_D
-	
+	cpfseq	invalid			    ; check if keyboard input is valid
+	bra	m1cont1
+	bra	loop			   
+m1cont1	call	LCD_Send_Byte_D		    ; print valid numbers on the LCD	
 	bra	loop
 
 	
