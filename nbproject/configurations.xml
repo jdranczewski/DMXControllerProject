@@ -18,6 +18,7 @@
       <itemPath>main.asm</itemPath>
       <itemPath>keyboard.asm</itemPath>
       <itemPath>LCD.asm</itemPath>
+      <itemPath>decimal_input.asm</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
