@@ -79,29 +79,38 @@ m1if	movlw	.1
 	bra	mode1	
 	
 ; Mode 0 implementation
-mode0	call	keyb_read_code_change	    ; read in keyboard input
+mode0_init
+	movlw	.0			    
+	movwf	mode			
+	call	LCD_clear
+	
+mode0	
+	call	keyb_read_code_change	    ; read in keyboard input
 	cpfseq	F			    ; compare to "channel select" keycode
 	bra	loop			    ; if F not pressed, go back to loop
-	movlw	.1
-	movwf	mode			    ;if F pressed, change mode variable to 1
-	
-	; Print out Channel on the LCD screen
-	call	ch_dsp
-	call	deci_start		    ; moves keycodes to program memory
+	bra	mode1_init
 	bra	loop
 
 ; Mode 1 implementation
+mode1_init
+	call	LCD_clear
+	movlw	.1
+	movwf	mode			    ;if F pressed, change mode variable to 1
+	; Print out Channel on the LCD screen
+	call	ch_dsp
+	call	deci_start		    ; moves keycodes to program memory
+
 mode1	
 	call	keyb_read_code_change	    ; read keyboard input
 	cpfseq	_C			    ; compare to "enter" keycode
 	bra	m1cont0			    ; not enter - go to m1cont0
 	; if enter - change mode back to 0 and clear LCD screen
-	movlw	.0			    
-	movwf	mode			
-	call	LCD_clear
+	bra	mode0_init
 	bra	loop
-m1cont0	
-	call	deci_keypress
+m1cont0	cpfseq	F
+	bra	m1cont1
+	bra	mode1_init
+m1cont1	call	deci_keypress
 	bra	loop			   
 
 ch_dsp
