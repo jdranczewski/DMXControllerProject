@@ -33,7 +33,8 @@ d3u	udata	0x200
 d3	res	.96
 
 ; Constants
-	
+
+; Data
 pdata_main code  
 ch_str	data	"Channel:"
 ; Reset to 0	
@@ -63,9 +64,9 @@ setup
 	movwf	chanH
 	
 	; Keycodes for buttons 
-	movlw	.9		
+	movlw	.24		
 	movwf	F		; Channel select
-	movlw	.24
+	movlw	.9
 	movwf	_C		; Enter
 	
 	; Set Port C as output
@@ -152,7 +153,7 @@ mode0_init
 mode0	
 	call	keyb_read_raw		    ; Check if D is pressed
 	movwf	tmp
-	movlw	0xED
+	movlw	0xEB
 	cpfseq	tmp
 	bra	m0cont0
 	bsf	ADCON0, GO		    ; If D is pressed, run the ADC conversion
