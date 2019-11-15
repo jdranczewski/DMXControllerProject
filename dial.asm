@@ -1,12 +1,17 @@
 	#include p18f87k22.inc
 
 ; Globals section
-global	dial_setup
+global	dial_setup, dial_flag
+	
+; Reserving space in RAM
+dialwhere   udata_acs
+dial_flag   res 1
 	
 ; Interrupt
 int_lo	code	0x0018
 	btfss	PIR1,ADIF	; check that this is ADC interrupt
 	retfie	FAST		; if not then return
+	btfsc	dial_flag, 0
 	movff	ADRESH, INDF1
 	bcf	PIR1, ADIF	; Clear interrupt flag
 	bsf	ADCON0, GO	; Start conversion again
@@ -16,6 +21,8 @@ int_lo	code	0x0018
 dial	code
 
 dial_setup
+    bcf	    dial_flag, 0    ; Clear the 'enable dial' flag
+	
     bsf	    TRISA,RA0	    ; use pin A0(==AN0) for input
     bsf	    ANCON0,ANSEL0   ; set A0 to analog
     movlw   0x01	    ; select AN0 for measurement

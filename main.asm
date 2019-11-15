@@ -4,8 +4,8 @@
 global	DMXdata
 ; Externals section
 extern	DMX_setup, DMX_output
-extern  dial_setup
-extern	keyb_setup, keyb_read_code_change
+extern  dial_setup, dial_flag
+extern	keyb_setup, keyb_read_code_change, keyb_read_raw
 extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear
 extern	deci_setup, deci_keypress, deci_start, deci_bufferL, deci_bufferH
 	
@@ -13,7 +13,7 @@ extern	deci_setup, deci_keypress, deci_start, deci_bufferL, deci_bufferH
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
 count0	res 1
 count1	res 1
-inc_tmp	res 1
+tmp	res 1
 mode	res 1
 ; Buttons
 F	res 1
@@ -85,11 +85,21 @@ mode0_init
 	call	LCD_clear
 	
 mode0	
-	call	keyb_read_code_change	    ; read in keyboard input
+	call	keyb_read_raw		    ; Set the dial flag
+	movwf	tmp
+	movlw	0xED
+	cpfseq	tmp
+	bra	clear_dial_flag
+	bsf	dial_flag, 0
+m0cont0	call	keyb_read_code_change	    ; read in keyboard input
 	cpfseq	F			    ; compare to "channel select" keycode
 	bra	loop			    ; if F not pressed, go back to loop
 	bra	mode1_init
 	bra	loop
+
+clear_dial_flag
+	bcf	dial_flag, 0
+	bra	m0cont0
 
 ; Mode 1 implementation
 mode1_init
@@ -158,9 +168,9 @@ write_some_data
 	movwf	count0
 	movlw	0x0
 	movwf	count1
-	movwf	inc_tmp
-wsdl	movff	inc_tmp, POSTINC0    ; Move incrementing value to the DMX data
-	incf	inc_tmp, f
+	movwf	tmp
+wsdl	movff	tmp, POSTINC0    ; Move incrementing value to the DMX data
+	incf	tmp, f
 	decf	count1, f
 	subwfb	count0, f
 	bc	wsdl
