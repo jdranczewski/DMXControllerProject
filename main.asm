@@ -68,6 +68,9 @@ setup
 	movwf	TRISC
 	bcf	LATC, 5
 	
+	; Initialise mode 0
+	bra	mode0_init
+	
 ; Main mode selection loop
 loop	movlw	.0
 	cpfseq	mode	; compare 0 to mode variable
@@ -83,6 +86,7 @@ mode0_init
 	movlw	.0			    
 	movwf	mode			
 	call	LCD_clear
+	call	deci_start
 	
 mode0	
 	call	keyb_read_raw		    ; Check if D is pressed
@@ -91,10 +95,19 @@ mode0
 	cpfseq	tmp
 	bra	m0cont0
 	bsf	ADCON0, GO		    ; If D is pressed, run the ADC conversion
-m0cont0	call	keyb_read_code_change	    ; read in keyboard input
+m0cont0	
+	call	keyb_read_code_change	    ; read in keyboard input
 	cpfseq	F			    ; compare to "channel select" keycode
-	bra	loop			    ; if F not pressed, go back to loop
+	bra	m0cont1			    ; if F not pressed, continue
 	bra	mode1_init
+m0cont1
+	cpfseq	_C			    ; compare to "enter" keycode
+	bra	m0cont2			    ; not enter - go to m0cont2
+	; if enter - change value and init mode 0 again
+	call	change_value
+	bra	mode0_init
+m0cont2	
+	call	deci_keypress
 	bra	loop
 
 ; Mode 1 implementation
@@ -113,13 +126,24 @@ mode1
 	; if enter - change channel and go back to mode 0
 	call	change_channel
 	bra	mode0_init
-	bra	loop
 m1cont0	cpfseq	F
 	bra	m1cont1
 	bra	mode1_init
 m1cont1	call	deci_keypress
 	bra	loop			   
 
+; Set current channel value to value from deci_buffer
+change_value
+	movlw	0x00		    ; Compare to 255, the maximum
+	cpfsgt	deci_bufferH
+	bra	cvcont
+	movlw	0xFF
+	movwf	deci_bufferL
+cvcont
+	movff	deci_bufferL, INDF1 ; Move value to address pointed to by FSR1
+	return
+	
+; Set channel pointer to value from deci_buffer
 change_channel
 	lfsr	FSR1, DMXdata	    ; Reset FSR1
 	; Limit the value to 512 (0x200)
