@@ -6,15 +6,17 @@ global	DMXdata
 extern	DMX_setup, DMX_output
 extern  dial_setup, dial_flag
 extern	keyb_setup, keyb_read_code_change, keyb_read_raw
-extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear
+extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear, m16L, m16H, LCD_hextodec, LCD_goto_pos
 extern	deci_setup, deci_keypress, deci_start, deci_bufferL, deci_bufferH
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
-count0	res 1
+count0	res 1		; Counter for initialising dmx data
 count1	res 1
 tmp	res 1
-mode	res 1
+mode	res 1		; This variable determines the current mode
+chanH	res 1		; Current channel number
+chanL	res 1
 ; Buttons
 F	res 1
 _C	res 1
@@ -47,6 +49,7 @@ setup
 	call	write_some_data
 	lfsr	FSR1, DMXdata	; Point FSR to DMX values for input
 	incf	FSR1L, f	; Write to channel 1, as channel 0 consists of all zeroes
+	; Call all the library setups
 	call	DMX_setup
 	call	dial_setup
 	call	keyb_setup
@@ -55,7 +58,9 @@ setup
 	
 	movlw	0		
 	movwf	mode		; Default mode 0
-	
+	movwf	chanL		; Default channel is 1
+	incf	chanL
+	movwf	chanH
 	
 	; Keycodes for buttons 
 	movlw	.9		
@@ -83,10 +88,66 @@ m1if	movlw	.1
 	
 ; Mode 0 implementation
 mode0_init
+	; Set mode variable
 	movlw	.0			    
-	movwf	mode			
-	call	LCD_clear
-	call	deci_start
+	movwf	mode		
+	call	LCD_clear		; Clear LCD
+	call	deci_start		; Start decimal input
+	
+	; Display channel numbers
+	; Current
+	movlw	0x05
+	call	LCD_goto_pos
+	movff	chanL, m16L
+	movff	chanH, m16H
+	call	LCD_hextodec
+	; Previous
+	movlw	0x00
+	call	LCD_goto_pos
+	movlw	"c"
+	call	LCD_Send_Byte_D
+	movlw	0
+	decf	m16L
+	subwfb	m16H
+	call	LCD_hextodec
+	; Next
+	movlw	0x0D
+	call	LCD_goto_pos
+	movlw	0
+	incf	m16L
+	addwfc	m16H
+	incf	m16L
+	addwfc	m16H
+	call	LCD_hextodec
+	
+	; Display channel values
+	movlw	0x45
+	call	LCD_goto_pos
+	movlw	0
+	movwf	m16H
+	; Cycle through channels and display
+	; Current
+	movff	POSTDEC1, m16L
+	call	LCD_hextodec
+	; Display arrow
+	movlw	0xF9
+	call	LCD_Send_Byte_D
+	; Previous
+	movlw	0x40
+	call	LCD_goto_pos
+	movlw	"v"
+	call	LCD_Send_Byte_D
+	movff	POSTINC1, m16L
+	call	LCD_hextodec
+	; Next
+	movlw	0x4D
+	call	LCD_goto_pos
+	movff	POSTINC1, m16L
+	movff	POSTDEC1, m16L
+	call	LCD_hextodec
+	; Move cursor to input position
+	movlw	0x49
+	call	LCD_goto_pos
 	
 mode0	
 	call	keyb_read_raw		    ; Check if D is pressed
@@ -146,18 +207,27 @@ cvcont
 ; Set channel pointer to value from deci_buffer
 change_channel
 	lfsr	FSR1, DMXdata	    ; Reset FSR1
-	; Limit the value to 512 (0x200)
-	movlw	0x02		    ; Check if high byte is 0x02
+	; Check if zero
+	movlw	0
 	cpfseq	deci_bufferH
-	bra	cccont0		    ; If not, go to next check
+	bra	cccont0
+	cpfseq	deci_bufferL
+	bra	cccont0
+	movlw	.1		    ; Set to 1 if input is 0
+	movwf	deci_bufferL
+	bra	set_channel
+	; Limit the value to 512 (0x200)
+cccont0	movlw	0x02		    ; Check if high byte is 0x02
+	cpfseq	deci_bufferH
+	bra	cccont1		    ; If not, go to next check
 	movlw	0x00		    ; iF yes, check if low byte greater than 0
 	cpfsgt	deci_bufferL
 	bra	set_channel	    ; If not, set channel
 	bra	limit_max	    ; If yes, limit
-cccont0
+cccont1
 	movlw	0x02		    ; If high byte greater than 0x02, always limit
 	cpfsgt	deci_bufferH
-	bra	set_channel	
+	bra	set_channel
 limit_max
 	movlw	0x02		    ; Load 512 into the buffers manually
 	movwf	deci_bufferH
@@ -166,8 +236,10 @@ limit_max
 set_channel	
 	movf	deci_bufferL, W	    ; Add to FSR1 remembering about carry bit
 	addwf	FSR1L, f
+	movwf	chanL		    ; Put channel number into the channel indicator as well
 	movf	deci_bufferH, W
 	addwfc	FSR1H, f
+	movwf	chanH
 	return
 	
 ch_dsp
@@ -186,11 +258,12 @@ write_some_data
 	; Counter set to 0x200, so it repeats 513 times
 	movlw	0x2
 	movwf	count0
-	movlw	0x0
+	movlw	0x01
 	movwf	count1
+	movlw	0
 	movwf	tmp
 wsdl	movff	tmp, POSTINC0    ; Move incrementing value to the DMX data
-	incf	tmp, f
+	;incf	tmp, f
 	decf	count1, f
 	subwfb	count0, f
 	bc	wsdl

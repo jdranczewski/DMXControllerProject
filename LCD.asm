@@ -1,7 +1,7 @@
 #include p18f87k22.inc
 
 ; Globals section
-global  LCD_setup, LCD_Write_Message, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_goto_pos, LCD_clear
+global  LCD_setup, LCD_Write_Message, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_goto_pos, LCD_clear,  m16L, m16H, LCD_hextodec
 
 ; Reserving space in RAM
 acs0    udata_acs   ; named variables in access ram
@@ -10,6 +10,19 @@ LCD_cnt_h   res 1   ; reserve 1 byte for variable LCD_cnt_h
 LCD_cnt_ms  res 1   ; reserve 1 byte for ms counter
 LCD_tmp	    res 1   ; reserve 1 byte for temporary use
 LCD_counter res 1   ; reserve 1 byte for counting through message
+
+; Variables for multiplication
+m8	    res	1
+m8_2	    res 1
+m16L	    res	1
+m16H	    res 1
+m24U	    res 1
+m24H	    res 1
+m24L	    res 1
+m32L	    res 1
+m32H	    res 1
+m32U	    res 1
+m32UU	    res 1
 
 ; Constants
 constant    LCD_E=5	; LCD enable bit
@@ -36,7 +49,7 @@ LCD_setup
 	call	LCD_Send_Byte_I
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
-	movlw	b'00001100'	; display on, cursor off, blinking off
+	movlw	b'00001111'	; display on, cursor on, blinking on
 	call	LCD_Send_Byte_I
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
@@ -163,6 +176,101 @@ lcdlp1	decf 	LCD_cnt_l,F	; no carry when 0x00 -> 0xff
 	return			; carry reset so return
 
 
+mul8x16	
+	movf	m8,W
+	mulwf	m16L
+	movff	PRODL,m24L
+	movff	PRODH,m24H
+	mulwf	m16H
+	movf	PRODL,W
+	addwf	m24H,f
+	movff	PRODH,m24U
+	movlw	0
+	addwfc	m24U,f
+	return
+	
+mul16x16
+	call	mul8x16
+	movff	m24L,m32L
+	movff	m24H,m32H
+	movff	m24U,m32U
+	movff	m8_2,m8
+	call	mul8x16
+	movf	m24L,W
+	addwf	m32H,f
+	movf	m24H,W
+	addwfc  m32U,f
+	movff	m24U,m32UU
+	movlw	0
+	addwfc  m32UU,f
+	return
+	
+mul8x24
+	movf	m8,W
+	mulwf	m24L
+	movff	PRODL,m32L
+	movff	PRODH,m32H
+	
+	mulwf	m24H
+	movf	PRODL,W
+	addwf	m32H,f
+	movff	PRODH,m32U
+	movlw	0
+	addwfc	m32U,f
+	
+	movf	m8,W
+	mulwf	m24U
+	movf	PRODL,W
+	addwf	m32U
+	movff	PRODH,m32UU
+	movlw	0
+	addwfc	m32UU,f
+	
+	return
+
+LCD_hextodec	    ; value to convert and display is stored in m16L and m16H
+	movlw	0x41
+	movwf	m8_2
+	movlw	0x8A
+	movwf	m8
+	call	mul16x16
+	movf	m32UU,W
+	; We don't need the first digit here
+	;call	LCD_display_digit
+	
+	movlw	0x0A
+	movwf	m8
+	movff	m32U,m24U
+	movff	m32H,m24H
+	movff	m32L,m24L
+	call	mul8x24
+	movf	m32UU,W
+	call	LCD_display_digit
+	
+	movlw	0x0A
+	movwf	m8
+	movff	m32U,m24U
+	movff	m32H,m24H
+	movff	m32L,m24L
+	call	mul8x24
+	movf	m32UU,W
+	call	LCD_display_digit
+	
+	movlw	0x0A
+	movwf	m8
+	movff	m32U,m24U
+	movff	m32H,m24H
+	movff	m32L,m24L
+	call	mul8x24
+	movf	m32UU,W
+	call	LCD_display_digit
+	
+	return
+	
+LCD_display_digit
+	addlw	0x30
+	call    LCD_Send_Byte_D
+	return
     end
 
 

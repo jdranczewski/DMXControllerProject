@@ -2,6 +2,9 @@
 
 ; Globals section
 global	dial_setup, dial_flag
+; Externals section	
+extern	m16L, m16H, LCD_hextodec, LCD_goto_pos
+extern	deci_counter
 	
 ; Reserving space in RAM
 dialwhere   udata_acs
@@ -13,6 +16,18 @@ int_lo	code	0x0018
 	retfie	FAST		; if not then return
 	bcf	PIR1, ADIF	; Clear interrupt flag
 	movff	ADRESH, INDF1
+	; Update the display
+	movlw	0x45
+	call	LCD_goto_pos
+	movlw	0
+	movwf	m16H
+	movff	INDF1, m16L
+	call	LCD_hextodec
+	; Move cursor back to position determined by decimal input library
+	movlw	0x4E
+	clrc
+	subfwb	deci_counter, W
+	call	LCD_goto_pos
 	retfie	FAST		; Fast return from interrupt
 	
 ; Put code somewhere in Program Memory
