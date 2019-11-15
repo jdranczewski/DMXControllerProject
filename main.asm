@@ -32,7 +32,7 @@ d3	res	.96
 
 ; Constants
 	
-pdata	code  
+pdata_main code  
 ch_str	data	"Channel:"
 ; Reset to 0	
 rst	code	0
@@ -85,9 +85,8 @@ mode0	call	keyb_read_code_change	    ; read in keyboard input
 	movlw	.1
 	movwf	mode			    ;if F pressed, change mode variable to 1
 	
-	; Print out C on the LCD screen for "Channel"
-	movlw	"C"
-	call	LCD_Send_Byte_D
+	; Print out Channel on the LCD screen
+	call	ch_dsp
 	call	deci_start		    ; moves keycodes to program memory
 	bra	loop
 
