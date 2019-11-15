@@ -85,21 +85,17 @@ mode0_init
 	call	LCD_clear
 	
 mode0	
-	call	keyb_read_raw		    ; Set the dial flag
+	call	keyb_read_raw		    ; Check if D is pressed
 	movwf	tmp
 	movlw	0xED
 	cpfseq	tmp
-	bra	clear_dial_flag
-	bsf	dial_flag, 0
+	bra	m0cont0
+	bsf	ADCON0, GO		    ; If D is pressed, run the ADC conversion
 m0cont0	call	keyb_read_code_change	    ; read in keyboard input
 	cpfseq	F			    ; compare to "channel select" keycode
 	bra	loop			    ; if F not pressed, go back to loop
 	bra	mode1_init
 	bra	loop
-
-clear_dial_flag
-	bcf	dial_flag, 0
-	bra	m0cont0
 
 ; Mode 1 implementation
 mode1_init
