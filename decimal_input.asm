@@ -13,6 +13,7 @@ keycode_temp	    res 1
 deci_bufferL	    res 1
 deci_bufferH	    res 1	
 deci_buffer_temp    res 1
+deci_counter	    res	1
 	
 ; Constants
 ;constant  
@@ -42,6 +43,10 @@ deci_start
 	movlw	0
 	movwf	deci_bufferL
 	movwf	deci_bufferH
+	
+	; Allow inputing up to three characters
+	movlw	.4
+	movwf	deci_counter
 	return
 
 deci_reset
@@ -56,11 +61,19 @@ deci_keypress
 	tblrd*
 	movf	TABLAT, W
 	cpfseq	invalid			    ; check if keyboard input is valid
-	bra	m1cont1
+	bra	dk_cont1
 	return			   
-m1cont1	
+dk_cont1
 	movwf	keycode_temp
+	; Decrement the counter
+	decfsz	deci_counter
+	bra	dk_cont2
+	; Set the counter to 1 to avoid overflow when more than 3 ch. inputed
+	movlw	.1
+	movwf	deci_counter
+	return
 	
+dk_cont2
 	; multiply memory buffer by 10
 	movlw	0xA
 	movff	deci_bufferH, deci_buffer_temp
@@ -81,6 +94,7 @@ m1cont1
 	movlw	0x30			    ; add 0x30 to the key pressed
 	addwf	keycode_temp, W
 	call	LCD_Send_Byte_D		    ; print valid numbers on the LCD
+	
 	return
 	
 	
