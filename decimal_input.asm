@@ -1,7 +1,7 @@
 	#include p18f87k22.inc
 
 ; Globals section
-global	    deci_setup, deci_start, deci_keypress
+global	    deci_setup, deci_start, deci_keypress, deci_bufferL, deci_bufferH
 	
 ; Externals section
 extern	    LCD_Send_Byte_D

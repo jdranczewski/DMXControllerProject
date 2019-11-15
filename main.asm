@@ -7,7 +7,7 @@ extern	DMX_setup, DMX_output
 extern  dial_setup
 extern	keyb_setup, keyb_read_code_change
 extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear
-extern	deci_setup, deci_keypress, deci_start
+extern	deci_setup, deci_keypress, deci_start, deci_bufferL, deci_bufferH
 	
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
@@ -104,7 +104,8 @@ mode1
 	call	keyb_read_code_change	    ; read keyboard input
 	cpfseq	_C			    ; compare to "enter" keycode
 	bra	m1cont0			    ; not enter - go to m1cont0
-	; if enter - change mode back to 0 and clear LCD screen
+	; if enter - change channel and go back to mode 0
+	call	change_channel
 	bra	mode0_init
 	bra	loop
 m1cont0	cpfseq	F
@@ -113,6 +114,32 @@ m1cont0	cpfseq	F
 m1cont1	call	deci_keypress
 	bra	loop			   
 
+change_channel
+	lfsr	FSR1, DMXdata	    ; Reset FSR1
+	; Limit the value to 512 (0x200)
+	movlw	0x02		    ; Check if high byte is 0x02
+	cpfseq	deci_bufferH
+	bra	cccont0		    ; If not, go to next check
+	movlw	0x00		    ; iF yes, check if low byte greater than 0
+	cpfsgt	deci_bufferL
+	bra	set_channel	    ; If not, set channel
+	bra	limit_max	    ; If yes, limit
+cccont0
+	movlw	0x02		    ; If high byte greater than 0x02, always limit
+	cpfsgt	deci_bufferH
+	bra	set_channel	
+limit_max
+	movlw	0x02		    ; Load 512 into the buffers manually
+	movwf	deci_bufferH
+	movlw	0
+	movwf	deci_bufferL
+set_channel	
+	movf	deci_bufferL, W	    ; Add to FSR1 remembering about carry bit
+	addwf	FSR1L, f
+	movf	deci_bufferH, W
+	addwfc	FSR1H, f
+	return
+	
 ch_dsp
 	movlw	upper(ch_str)	; address of data in PM
 	movwf	TBLPTRU		; load upper bits to TBLPTRU
