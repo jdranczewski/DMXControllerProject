@@ -2,10 +2,10 @@
 
 ; Globals section
 global	    DMX_setup, DMX_output
-	
+
 ; Externals section
 extern	    DMXdata
-	
+
 ; Reserving space in RAM
 DMX_vars    udata_acs		; Reserve space somewhere (swhere) in access RAM
 count0	    res 1		; Counter up to 513 for reading memory
@@ -18,7 +18,7 @@ startl	    res 1		; Counter for the low period of start signal
 startls	    res 1
 starth	    res 1		; Counter for the high period of start signal
 starths	    res 1
-	
+
 ; Constants
 constant    out_pin = 0
 constant    out_pin_i = 1
@@ -31,7 +31,7 @@ int_hi	code	0x0008
 	call	DMX_output
 	bcf	INTCON,TMR0IF	; clear interrupt flag
 	retfie	FAST		; fast return from interrupt
-	
+
 ; Put this somewhere in Program memory
 DMX	code
 
@@ -40,7 +40,7 @@ DMX_setup
 	bsf	LATC, out_pin	  ; Output 1 by default
 	bcf	TRISC, out_pin_i    ; Pin 1 on C - output
 	bcf	LATC, out_pin_i	  ; Output 0 by default
-	
+
 	; Set up counter defaults
 	movlw	0x2
 	movwf	count0s
@@ -52,17 +52,17 @@ DMX_setup
 	movwf	startls
 	movlw	.16
 	movwf	starths
-	
+
 	; Set timer0 to 16-bit, Fosc/4/256
 	movlw	b'10000011'
 	movwf	T0CON		; = 62.5KHz clock rate, approx 1sec rollover
-	
+
 	; Interrupt
 	bsf	RCON, IPEN	; enables using interrupt priority
 	bsf	INTCON, GIEH	; Enable all high-priority interrupts
 	bsf	INTCON, TMR0IE	; Enable timer0 interrupt
 	bsf	INTCON2, TMR0IP	; set priority to high
-	
+
 	return
 
 DMX_output
@@ -70,7 +70,7 @@ DMX_output
 	movff	count0s, count0
 	movff	count1s, count1
 	call	DMX_start_signal
-DMXol		
+DMXol
 	call	DMX_output_byte
 	movlw	0
 	decf	count1, f
@@ -95,10 +95,10 @@ ssll	call	DMX_bit_delay		; ssll = start signal low loop
 sshl	call	DMX_bit_delay		; sshl = start signal high loop
 	decfsz	starth
 	bra	sshl
-	
+
 	return
-	
-	
+
+
 ; Writes 8 bits to PORTC from FSR0
 DMX_output_byte
 	bcf	LATC, out_pin	; send start bit
@@ -116,87 +116,87 @@ b0_1	bsf	LATC, out_pin	; Set PORTC pin
 	bcf	LATC, out_pin_i
 	nop
 	nop
-	
+
 b1	call	DMX_bit_delay
-	btfsc   INDF0, 1
-	bra b1_1
+	btfsc	INDF0, 1
+	bra	b1_1
 	nop
-	bcf LATC, out_pin
-	bsf	LATC, out_pin_i
-	bra b2
-b1_1	bsf LATC, out_pin
-	bcf	LATC, out_pin_i
+	bcf	LATC,	out_pin
+	bsf	LATC,	out_pin_i
+	bra	b2
+b1_1	bsf	LATC,	out_pin
+	bcf	LATC,	out_pin_i
 	nop
 	nop
 
 b2	call	DMX_bit_delay
-	btfsc   INDF0, 2
-	bra b2_1
+	btfsc	INDF0,	2
+	bra	b2_1
 	nop
-	bcf LATC, out_pin
-	bsf	LATC, out_pin_i
-	bra b3
-b2_1	bsf LATC, out_pin
-	bcf	LATC, out_pin_i
+	bcf	LATC,	out_pin
+	bsf	LATC,	out_pin_i
+	bra	b3
+b2_1	bsf	LATC,	out_pin
+	bcf	LATC,	out_pin_i
 	nop
 	nop
 
 b3	call	DMX_bit_delay
-	btfsc   INDF0, 3
-	bra b3_1
+	btfsc	INDF0,	3
+	bra	b3_1
 	nop
-	bcf LATC, out_pin
-	bsf	LATC, out_pin_i
-	bra b4
-b3_1	bsf LATC, out_pin
-	bcf	LATC, out_pin_i
+	bcf	LATC,	out_pin
+	bsf	LATC,	out_pin_i
+	bra	b4
+b3_1	bsf	LATC,	out_pin
+	bcf	LATC,	out_pin_i
 	nop
 	nop
 
 b4	call	DMX_bit_delay
-	btfsc   INDF0, 4
-	bra b4_1
+	btfsc	INDF0, 4
+	bra	b4_1
 	nop
-	bcf LATC, out_pin
-	bsf	LATC, out_pin_i
-	bra b5
-b4_1	bsf LATC, out_pin
-	bcf	LATC, out_pin_i
+	bcf	LATC,	out_pin
+	bsf	LATC,	out_pin_i
+	bra	b5
+b4_1	bsf	LATC,	out_pin
+	bcf	LATC,	out_pin_i
 	nop
 	nop
 
 b5	call	DMX_bit_delay
-	btfsc   INDF0, 5
-	bra b5_1
+	btfsc	INDF0, 5
+	bra	b5_1
 	nop
-	bcf LATC, out_pin
+	bcf	LATC, out_pin
 	bsf	LATC, out_pin_i
-	bra b6
-b5_1	bsf LATC, out_pin
-	bcf	LATC, out_pin_i
+	bra	b6
+b5_1	bsf	LATC,	out_pin
+	bcf	LATC,	out_pin_i
 	nop
 	nop
 
 b6	call	DMX_bit_delay
-	btfsc   INDF0, 6
-	bra b6_1
+	btfsc	INDF0, 6
+	bra	b6_1
 	nop
-	bcf LATC, out_pin
-	bsf	LATC, out_pin_i
-	bra b7
-b6_1	bsf LATC, out_pin
+	bcf	LATC,	out_pin
+	bsf	LATC,	out_pin_i
+	bra	b7
+b6_1	bsf	LATC, out_pin
 	bcf	LATC, out_pin_i
 	nop
 	nop
 
 b7	call	DMX_bit_delay
-	btfsc   POSTINC0, 7 ; increment the pointer
-	bra b7_1
+	btfsc	POSTINC0, 7 ; increment the pointer
+	bra	b7_1
 	nop
-	bcf LATC, out_pin
-	bsf	LATC, out_pin_i
-	bra b8
-b7_1	bsf LATC, out_pin
+	bcf	LATC,	out_pin
+	bsf	LATC,	out_pin_i
+	bra	b8
+b7_1	bsf	LATC, out_pin
 	bcf	LATC, out_pin_i
 	nop
 	nop
@@ -204,21 +204,21 @@ b8	call	DMX_bit_delay
 	nop
 	nop
 	nop
-	bsf LATC, out_pin  ; send both end bytes
-	bcf	LATC, out_pin_i	  
+	bsf	LATC, out_pin  ; send both end bytes
+	bcf	LATC, out_pin_i
 	call	DMX_bit_delay
 	call	DMX_bit_delay
 	nop
 	nop
 	nop
 	return
-	
+
 DMX_bit_delay
 	nop
 	nop
 	movff	delaybs, delayb
 dbl	decfsz	delayb
-	bra dbl
+	bra\Tdbl
 	return
 
 end
