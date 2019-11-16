@@ -30,7 +30,7 @@ constant    LCD_RS=4	; LCD register select bit
 
 ; Put this somewhere in Program memory
 LCD	code
-    
+
 LCD_setup
 	clrf    LATB
 	movlw   b'11000000'	    ; RB0:5 all outputs
@@ -71,7 +71,7 @@ LCD_Loop_message
 	decfsz  LCD_counter
 	bra	LCD_Loop_message
 	return
-	
+
 LCD_Write_Message_TBLPTR    ; Message stored at TBLPTR, length stored in W
 	movwf   LCD_counter
 LCD_Loop_message_TBLPTR
@@ -81,11 +81,11 @@ LCD_Loop_message_TBLPTR
 	decfsz  LCD_counter
 	bra	LCD_Loop_message_TBLPTR
 	return
-	
+
 LCD_goto_pos
 	movwf	LCD_tmp
 	movlw	b'10000000'
-	iorwf	LCD_tmp, W
+	iorwf	LCD_tmp, W ; Command for position is 1ppppppp, where p are bits describing position address
 	call	LCD_Send_Byte_I
 	movlw	.10		; wait 40us
 	call	LCD_delay_x4us
@@ -104,12 +104,12 @@ LCD_Send_Byte_I		    ; Transmits byte stored in W to instruction reg
 	andlw   0x0f	    ; select just low nibble
 	movwf   LATB	    ; output data bits to LCD
 	bcf	LATB, LCD_RS	; Instruction write clear RS bit
-	call    LCD_Enable  ; Pulse enable Bit 
+	call    LCD_Enable  ; Pulse enable Bit
 	movf	LCD_tmp,W   ; swap nibbles, now do low nibble
 	andlw   0x0f	    ; select just low nibble
 	movwf   LATB	    ; output data bits to LCD
 	bcf	LATB, LCD_RS    ; Instruction write clear RS bit
-        call    LCD_Enable  ; Pulse enable Bit 
+        call    LCD_Enable  ; Pulse enable Bit
 	return
 
 LCD_Send_Byte_D		    ; Transmits byte stored in W to data reg
@@ -118,12 +118,12 @@ LCD_Send_Byte_D		    ; Transmits byte stored in W to data reg
 	andlw   0x0f	    ; select just low nibble
 	movwf   LATB	    ; output data bits to LCD
 	bsf	LATB, LCD_RS	; Data write set RS bit
-	call    LCD_Enable  ; Pulse enable Bit 
+	call    LCD_Enable  ; Pulse enable Bit
 	movf	LCD_tmp,W   ; swap nibbles, now do low nibble
 	andlw   0x0f	    ; select just low nibble
 	movwf   LATB	    ; output data bits to LCD
-	bsf	LATB, LCD_RS    ; Data write set RS bit	    
-        call    LCD_Enable  ; Pulse enable Bit 
+	bsf	LATB, LCD_RS    ; Data write set RS bit
+        call    LCD_Enable  ; Pulse enable Bit
 	movlw	.10	    ; delay 40us
 	call	LCD_delay_x4us
 	return
@@ -147,28 +147,28 @@ LCD_Enable	    ; pulse enable bit LCD_E for 500ns
 	nop
 	bcf	    LATB, LCD_E	    ; Writes data to LCD
 	return
-    
+
 ; ** a few delay routines below here as LCD timing can be quite critical ****
 LCD_delay_ms		    ; delay given in ms in W
 	movwf	LCD_cnt_ms
 lcdlp2	movlw	.250	    ; 1 ms delay
-	call	LCD_delay_x4us	
+	call	LCD_delay_x4us
 	decfsz	LCD_cnt_ms
 	bra	lcdlp2
 	return
-    
+
 LCD_delay_x4us		    ; delay given in chunks of 4 microsecond in W
 	movwf	LCD_cnt_l   ; now need to multiply by 16
 	swapf   LCD_cnt_l,F ; swap nibbles
-	movlw	0x0f	    
+	movlw	0x0f
 	andwf	LCD_cnt_l,W ; move low nibble to W
 	movwf	LCD_cnt_h   ; then to LCD_cnt_h
-	movlw	0xf0	    
+	movlw	0xf0
 	andwf	LCD_cnt_l,F ; keep high nibble in LCD_cnt_l
 	call	LCD_delay
 	return
 
-LCD_delay			; delay routine	4 instruction loop == 250ns	    
+LCD_delay			; delay routine	4 instruction loop == 250ns
 	movlw 	0x00		; W=0
 lcdlp1	decf 	LCD_cnt_l,F	; no carry when 0x00 -> 0xff
 	subwfb 	LCD_cnt_h,F	; no carry when 0x00 -> 0xff
@@ -176,7 +176,7 @@ lcdlp1	decf 	LCD_cnt_l,F	; no carry when 0x00 -> 0xff
 	return			; carry reset so return
 
 
-mul8x16	
+mul8x16
 	movf	m8,W
 	mulwf	m16L
 	movff	PRODL,m24L
@@ -188,7 +188,9 @@ mul8x16
 	movlw	0
 	addwfc	m24U,f
 	return
-	
+
+
+; Hex to decimal conversion multiplication helper functions
 mul16x16
 	call	mul8x16
 	movff	m24L,m32L
@@ -204,20 +206,20 @@ mul16x16
 	movlw	0
 	addwfc  m32UU,f
 	return
-	
+
 mul8x24
 	movf	m8,W
 	mulwf	m24L
 	movff	PRODL,m32L
 	movff	PRODH,m32H
-	
+
 	mulwf	m24H
 	movf	PRODL,W
 	addwf	m32H,f
 	movff	PRODH,m32U
 	movlw	0
 	addwfc	m32U,f
-	
+
 	movf	m8,W
 	mulwf	m24U
 	movf	PRODL,W
@@ -225,19 +227,21 @@ mul8x24
 	movff	PRODH,m32UU
 	movlw	0
 	addwfc	m32UU,f
-	
+
 	return
 
-LCD_hextodec	    ; value to convert and display is stored in m16L and m16H
+; Convert and display a hexadecimal number in decimal
+; Value to convert and display is stored in m16L and m16H
+LCD_hextodec
 	movlw	0x41
 	movwf	m8_2
 	movlw	0x8A
 	movwf	m8
 	call	mul16x16
 	movf	m32UU,W
-	; We don't need the first digit here
+	; We don't need the first digit for this project (max decimal length is 3)
 	;call	LCD_display_digit
-	
+
 	movlw	0x0A
 	movwf	m8
 	movff	m32U,m24U
@@ -246,7 +250,7 @@ LCD_hextodec	    ; value to convert and display is stored in m16L and m16H
 	call	mul8x24
 	movf	m32UU,W
 	call	LCD_display_digit
-	
+
 	movlw	0x0A
 	movwf	m8
 	movff	m32U,m24U
@@ -255,7 +259,7 @@ LCD_hextodec	    ; value to convert and display is stored in m16L and m16H
 	call	mul8x24
 	movf	m32UU,W
 	call	LCD_display_digit
-	
+
 	movlw	0x0A
 	movwf	m8
 	movff	m32U,m24U
@@ -264,13 +268,12 @@ LCD_hextodec	    ; value to convert and display is stored in m16L and m16H
 	call	mul8x24
 	movf	m32UU,W
 	call	LCD_display_digit
-	
+
 	return
-	
+
 LCD_display_digit
+  ; To go from int 1 to char "1" (etc) we need to add a 0x30 offset
 	addlw	0x30
 	call    LCD_Send_Byte_D
 	return
     end
-
-

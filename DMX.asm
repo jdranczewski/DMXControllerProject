@@ -25,10 +25,10 @@ constant    out_pin_i = 1
 
 ; Interrupt
 int_hi	code	0x0008
-	btfss	INTCON,TMR0IF	; check that this is timer0 interrupt
+	btfss	INTCON,TMR0IF	; check that this is a timer0 interrupt
 	retfie	FAST		; if not then return
-	lfsr	FSR0, DMXdata
-	call	DMX_output
+	lfsr	FSR0, DMXdata	; Reset FSR0 to start of the data in RAM
+	call	DMX_output	; Output the DMX signal
 	bcf	INTCON,TMR0IF	; clear interrupt flag
 	retfie	FAST		; fast return from interrupt
 
@@ -38,7 +38,7 @@ DMX	code
 DMX_setup
 	bcf	TRISC, out_pin    ; Pin 0 on C - output
 	bsf	LATC, out_pin	  ; Output 1 by default
-	bcf	TRISC, out_pin_i    ; Pin 1 on C - output
+	bcf	TRISC, out_pin_i    ; Pin 1 on C - inverted output
 	bcf	LATC, out_pin_i	  ; Output 0 by default
 
 	; Set up counter defaults
@@ -69,8 +69,9 @@ DMX_output
 	; Counter set to 0x200, so it repeats 513 times
 	movff	count0s, count0
 	movff	count1s, count1
-	call	DMX_start_signal
+	call	DMX_start_signal	; Send out the start signal first
 DMXol
+	; Output 513 bytes of data
 	call	DMX_output_byte
 	movlw	0
 	decf	count1, f
@@ -82,7 +83,7 @@ DMXol
 ; Sends out the start signal
 DMX_start_signal
 	movff	startls, startl
-	; Send low
+	; Send low, note that out_pin and out_pin_i always set to opposite values
 	bcf	LATC, out_pin
 	bsf	LATC, out_pin_i
 ssll	call	DMX_bit_delay		; ssll = start signal low loop
@@ -112,11 +113,12 @@ b0	call	DMX_bit_delay
 	bcf	LATC, out_pin	; Clear PORTC output pin
 	bsf	LATC, out_pin_i
 	bra	b1		; Branch to outputting next bit
-b0_1	bsf	LATC, out_pin	; Set PORTC pin
+b0_1	bsf	LATC, out_pin	; Set PORTC output pin
 	bcf	LATC, out_pin_i
 	nop
 	nop
 
+; Repeat the above for all the other bits
 b1	call	DMX_bit_delay
 	btfsc	INDF0, 1
 	bra	b1_1
@@ -190,7 +192,7 @@ b6_1	bsf	LATC, out_pin
 	nop
 
 b7	call	DMX_bit_delay
-	btfsc	POSTINC0, 7 ; increment the pointer
+	btfsc	POSTINC0, 7 ;  this is the last bit, so increment FSR0 in time to point to next address
 	bra	b7_1
 	nop
 	bcf	LATC,	out_pin
@@ -213,12 +215,13 @@ b8	call	DMX_bit_delay
 	nop
 	return
 
+; Delay that brings the bits up to 4us
 DMX_bit_delay
 	nop
 	nop
 	movff	delaybs, delayb
 dbl	decfsz	delayb
-	bra\Tdbl
+	bra	dbl
 	return
 
 end
