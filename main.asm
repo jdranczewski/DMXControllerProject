@@ -8,7 +8,7 @@ extern  dial_setup, dial_flag
 extern	keyb_setup, keyb_read_code_change, keyb_read_raw
 extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear, m16L, m16H, LCD_hextodec, LCD_goto_pos
 extern	deci_setup, deci_keypress, deci_start, deci_bufferL, deci_bufferH
-	
+
 ; Reserving space in RAM
 swhere  udata_acs	; Reserve space somewhere (swhere) in access RAM
 count0	res 1		; Counter for initialising dmx data
@@ -20,10 +20,12 @@ chanL	res 1
 ; Buttons
 F	res 1
 _C	res 1
-	
+N	res 1
+P	res 1
+
 there	udata_acs .95	; Put the 0th byte of DMX data in access RAM
 DMXdata res 1
- 
+
 shared	udata_shr	; Put the actual data across banks 0-2
 d1u	udata	.96
 d1	res	.160
@@ -35,16 +37,16 @@ d3	res	.96
 ; Constants
 
 ; Data
-pdata_main code  
+pdata_main code
 ch_str	data	"Channel:"
-; Reset to 0	
+; Reset to 0
 rst	code	0
 	goto	setup
 
 
 ; Put code somewhere in Program Memory
 main	code
- 
+
 setup
 	lfsr	FSR0, DMXdata	; Point FSR to DMX values for output
 	call	write_some_data
@@ -56,27 +58,31 @@ setup
 	call	keyb_setup
 	call	LCD_setup
 	call	deci_setup
-	
-	movlw	0		
+
+	movlw	0
 	movwf	mode		; Default mode 0
 	movwf	chanL		; Default channel is 1
 	incf	chanL
 	movwf	chanH
-	
-	; Keycodes for buttons 
-	movlw	.24		
+
+	; Keycodes for buttons
+	movlw	.24
 	movwf	F		; Channel select
 	movlw	.9
 	movwf	_C		; Enter
-	
+	movlw	.8
+	movwf	N		; Next
+	movlw	.6
+	movwf	P		; Previous
+
 	; Set Port C as output
 	movlw	0
 	movwf	TRISC
 	bcf	LATC, 5
-	
+
 	; Initialise mode 0
 	bra	mode0_init
-	
+
 ; Main mode selection loop
 loop	movlw	.0
 	cpfseq	mode	; compare 0 to mode variable
@@ -85,16 +91,16 @@ loop	movlw	.0
 m1if	movlw	.1
 	cpfseq	mode
 	bra	loop
-	bra	mode1	
-	
+	bra	mode1
+
 ; Mode 0 implementation
 mode0_init
 	; Set mode variable
-	movlw	.0			    
-	movwf	mode		
+	movlw	.0
+	movwf	mode
 	call	LCD_clear		; Clear LCD
 	call	deci_start		; Start decimal input
-	
+
 	; Display channel numbers
 	; Current
 	movlw	0x05
@@ -120,7 +126,7 @@ mode0_init
 	incf	m16L
 	addwfc	m16H
 	call	LCD_hextodec
-	
+
 	; Display channel values
 	movlw	0x45
 	call	LCD_goto_pos
@@ -149,15 +155,15 @@ mode0_init
 	; Move cursor to input position
 	movlw	0x49
 	call	LCD_goto_pos
-	
-mode0	
+
+mode0
 	call	keyb_read_raw		    ; Check if D is pressed
 	movwf	tmp
 	movlw	0xEB
 	cpfseq	tmp
 	bra	m0cont0
 	bsf	ADCON0, GO		    ; If D is pressed, run the ADC conversion
-m0cont0	
+m0cont0
 	call	keyb_read_code_change	    ; read in keyboard input
 	cpfseq	F			    ; compare to "channel select" keycode
 	bra	m0cont1			    ; if F not pressed, continue
@@ -168,7 +174,17 @@ m0cont1
 	; if enter - change value and init mode 0 again
 	call	change_value
 	bra	mode0_init
-m0cont2	
+m0cont2
+	cpfseq	N
+	bra	m0cont3
+	call next_channel
+	bra	mode0_init
+m0cont3
+	cpfseq	P
+	bra m0cont4
+	call prev_channel
+	bra	mode0_init
+m0cont4
 	call	deci_keypress
 	bra	loop
 
@@ -181,7 +197,7 @@ mode1_init
 	call	ch_dsp
 	call	deci_start		    ; moves keycodes to program memory
 
-mode1	
+mode1
 	call	keyb_read_code_change	    ; read keyboard input
 	cpfseq	_C			    ; compare to "enter" keycode
 	bra	m1cont0			    ; not enter - go to m1cont0
@@ -192,7 +208,7 @@ m1cont0	cpfseq	F
 	bra	m1cont1
 	bra	mode1_init
 m1cont1	call	deci_keypress
-	bra	loop			   
+	bra	loop
 
 ; Set current channel value to value from deci_buffer
 change_value
@@ -204,7 +220,7 @@ change_value
 cvcont
 	movff	deci_bufferL, INDF1 ; Move value to address pointed to by FSR1
 	return
-	
+
 ; Set channel pointer to value from deci_buffer
 change_channel
 	lfsr	FSR1, DMXdata	    ; Reset FSR1
@@ -234,7 +250,7 @@ limit_max
 	movwf	deci_bufferH
 	movlw	0
 	movwf	deci_bufferL
-set_channel	
+set_channel
 	movf	deci_bufferL, W	    ; Add to FSR1 remembering about carry bit
 	addwf	FSR1L, f
 	movwf	chanL		    ; Put channel number into the channel indicator as well
@@ -242,7 +258,27 @@ set_channel
 	addwfc	FSR1H, f
 	movwf	chanH
 	return
-	
+
+; Increment current channel by 1
+next_channel
+	movff	chanL, deci_bufferL
+	movff	chanH, deci_bufferH
+	movlw	0x00
+	incf	deci_bufferL
+	addwfc	deci_bufferH
+	call	change_channel
+	return
+
+; Decrement current channel by 1
+prev_channel
+	movff	chanL, deci_bufferL
+	movff	chanH, deci_bufferH
+	movlw	0x00
+	decf	deci_bufferL
+	subwfb	deci_bufferH
+	call	change_channel
+	return
+
 ch_dsp
 	movlw	upper(ch_str)	; address of data in PM
 	movwf	TBLPTRU		; load upper bits to TBLPTRU
@@ -252,8 +288,8 @@ ch_dsp
 	movwf	TBLPTRL		; load low byte to TBLPTRL
 	movlw	.8
 	call	LCD_Write_Message_TBLPTR
-	return	
-	
+	return
+
 ; Write incrementing values to DMX data block
 write_some_data
 	; Counter set to 0x200, so it repeats 513 times
@@ -269,5 +305,5 @@ wsdl	movff	tmp, POSTINC0    ; Move incrementing value to the DMX data
 	subwfb	count0, f
 	bc	wsdl
 	return
-	
+
 	end
