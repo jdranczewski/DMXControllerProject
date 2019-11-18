@@ -4,7 +4,7 @@
 global	DMXdata
 ; Externals section
 extern	DMX_setup, DMX_output
-extern  dial_setup, dial_flag
+extern  dial_setup
 extern	keyb_setup, keyb_read_code_change, keyb_read_raw
 extern	LCD_setup, LCD_Write_Message_TBLPTR, LCD_Send_Byte_D, LCD_clear, m16L, m16H, LCD_hextodec, LCD_goto_pos
 extern	deci_setup, deci_keypress, deci_start, deci_bufferL, deci_bufferH
@@ -18,10 +18,10 @@ mode	res 1		; This variable determines the current mode
 chanH	res 1		; Current channel number (two bytes)
 chanL	res 1
 ; Button codes
-F	res 1
+_F	res 1
 _C	res 1
-N	res 1
-P	res 1
+_N	res 1
+_P	res 1
 
 there	udata_acs .95	; Put the 0th byte of DMX data in access RAM for easy access
 DMXdata res 1
@@ -67,13 +67,13 @@ setup
 
 	; Keycodes for buttons
 	movlw	.24
-	movwf	F		; Channel select
+	movwf	_F		; Channel select
 	movlw	.9
 	movwf	_C		; Enter
 	movlw	.8
-	movwf	N		; Next
+	movwf	_N		; Next
 	movlw	.6
-	movwf	P		; Previous
+	movwf	_P		; Previous
 
 	; Set Port C as output
 	movlw	0
@@ -168,7 +168,7 @@ mode0
 	bsf	ADCON0, GO		    ; If D is pressed, start the ADC conversion
 m0cont0
 	call	keyb_read_code_change	    ; read in keyboard input on press
-	cpfseq	F			    ; compare to "channel select" keycode
+	cpfseq	_F			    ; compare to "channel select" keycode
 	bra	m0cont1			    ; if F not pressed, continue
 	bra	mode1_init
 m0cont1
@@ -178,13 +178,13 @@ m0cont1
 	call	change_value
 	bra	mode0_init
 m0cont2
-	cpfseq	N
+	cpfseq	_N
 	bra	m0cont3
 	; If next is pressed, change channel and initialise mode0 again
 	call next_channel
 	bra	mode0_init
 m0cont3
-	cpfseq	P
+	cpfseq	_P
 	bra m0cont4
 	; If prev is pressed, change channel and initialise mode0 again
 	call prev_channel
@@ -211,7 +211,7 @@ mode1
 	; if enter - change channel and go back to mode 0
 	call	change_channel
 	bra	mode0_init
-m1cont0	cpfseq	F	; Check if "channel select" button pressed
+m1cont0	cpfseq	_F	; Check if "channel select" button pressed
 	bra	m1cont1
 	bra	mode1_init	; If yes, restart channel selection
 m1cont1	call	deci_keypress	; Handle the keypress as decimal input

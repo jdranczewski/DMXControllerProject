@@ -1,7 +1,7 @@
 	#include p18f87k22.inc
 
 ; Globals section
-global	dial_setup, dial_flag
+global	dial_setup
 ; Externals section
 extern	m16L, m16H, LCD_hextodec, LCD_goto_pos
 extern	deci_counter
