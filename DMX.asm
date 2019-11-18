@@ -217,7 +217,7 @@ b8	call	DMX_bit_delay
 
 ; Delay that brings the bits up to 4us
 DMX_bit_delay
-	nop
+	;nop
 	nop
 	movff	delaybs, delayb
 dbl	decfsz	delayb
