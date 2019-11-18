@@ -22,6 +22,7 @@ _F	res 1
 _C	res 1
 _N	res 1
 _P	res 1
+_R	res 1
 
 there	udata_acs .95	; Put the 0th byte of DMX data in access RAM for easy access
 DMXdata res 1
@@ -47,6 +48,7 @@ main	code
 
 setup
 	lfsr	FSR0, DMXdata	; Point FSR to DMX values for output
+	lfsr	FSR2, DMXdata	; Point FSR to DMX values for resetting all channel values to 0
 	call	write_some_data	; Write placeholder data to all DMX bytes in RAM
 	lfsr	FSR1, DMXdata	; Point FSR to DMX values for input
 	; Write to channel 1, as channel 0 consists of all zeroes
@@ -74,6 +76,8 @@ setup
 	movwf	_N		; Next
 	movlw	.6
 	movwf	_P		; Previous
+	movlw	.19
+	movwf	_R		; Reset
 
 	; Set Port C as output
 	movlw	0
@@ -190,6 +194,12 @@ m0cont3
 	call prev_channel
 	bra	mode0_init
 m0cont4
+	cpfseq	_R
+	bra m0cont5
+	;If reset pressed, write zeroes to all channels
+	call write_some_data
+	bra	mode0_init
+m0cont5
 	; If no special keys pressed, handle the press as decimal input
 	call	deci_keypress
 	bra	loop
@@ -307,6 +317,7 @@ ch_dsp
 
 ; Write initial values to DMX data block
 write_some_data
+	lfsr	FSR2,DMXdata
 	; Counter set to 0x201, so it repeats 514 times
 	; (512 addresses + 1 byte of padding in both directions)
 	movlw	0x2
@@ -315,7 +326,7 @@ write_some_data
 	movwf	count1
 	movlw	0
 	movwf	tmp
-wsdl	movff	tmp, POSTINC0    ; Move value to the DMX data
+wsdl	movff	tmp, POSTINC2    ; Move value to the DMX data
 	; Initially we wrote incrementing values to subsequent channels ot test date transmission.
 	; Can be enabled by uncommenting line below
 	;incf	tmp, f
