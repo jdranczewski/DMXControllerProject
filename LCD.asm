@@ -176,6 +176,9 @@ lcdlp1	decf 	LCD_cnt_l,F	; no carry when 0x00 -> 0xff
 	return			; carry reset so return
 
 
+; Hex to decimal conversion multiplication helper functions
+; Those mostly involve using mulwf and many temporary variables
+; Multiply as 16 bit number by an 8 bit one
 mul8x16
 	movf	m8,W
 	mulwf	m16L
@@ -189,8 +192,7 @@ mul8x16
 	addwfc	m24U,f
 	return
 
-
-; Hex to decimal conversion multiplication helper functions
+; Multiply two 16 bit numbers
 mul16x16
 	call	mul8x16
 	movff	m24L,m32L
@@ -207,6 +209,7 @@ mul16x16
 	addwfc  m32UU,f
 	return
 
+; Multiply a 24 bit bumber by an 8 bit one
 mul8x24
 	movf	m8,W
 	mulwf	m24L
@@ -237,6 +240,7 @@ LCD_hextodec
 	movwf	m8_2
 	movlw	0x8A
 	movwf	m8
+	; Multiply the hex number by 16778 to get the first decimal digit
 	call	mul16x16
 	movf	m32UU,W
 	; We don't need the first digit for this project (max decimal length is 3)
@@ -247,6 +251,7 @@ LCD_hextodec
 	movff	m32U,m24U
 	movff	m32H,m24H
 	movff	m32L,m24L
+	; Multiply by 10 repeatedly to get and display further digits
 	call	mul8x24
 	movf	m32UU,W
 	call	LCD_display_digit
@@ -271,6 +276,7 @@ LCD_hextodec
 
 	return
 
+; Display a number (0-9) stored in W on the screen
 LCD_display_digit
   ; To go from int 1 to char "1" (etc) we need to add a 0x30 offset
 	addlw	0x30
