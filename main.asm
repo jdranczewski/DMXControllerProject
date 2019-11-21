@@ -79,11 +79,6 @@ setup
 	movlw	.19
 	movwf	_R		; Reset
 
-	; Set Port C as output
-	movlw	0
-	movwf	TRISC
-	bcf	LATC, 5
-
 	; Initialise mode 0
 	bra	mode0_init
 

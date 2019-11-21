@@ -53,9 +53,11 @@ DMX_setup
 	movlw	.16
 	movwf	starths
 
-	; Set timer0 to 16-bit, Fosc/4/256
+	; Set timer0 to 16-bit, Fosc/4/16
+	; 64MHz clock rate, 4 instructiosn, 16bit overflow,
+	; 1:16 prescaler, gives 15.3Hz
 	movlw	b'10000011'
-	movwf	T0CON		; = 62.5KHz clock rate, approx 1sec rollover
+	movwf	T0CON
 
 	; Interrupt
 	bsf	RCON, IPEN	; enables using interrupt priority
