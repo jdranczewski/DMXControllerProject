@@ -33,7 +33,7 @@ d1	res	.160
 d2u	udata	0x100
 d2	res	.256
 d3u	udata	0x200
-d3	res	.96
+d3	res	.97
 
 ; Data
 pdata_main code
